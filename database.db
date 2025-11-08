@@ -1,0 +1,154 @@
+from motor.motor_asyncio import AsyncIOMotorClient
+
+MONGODB_URL = "mongodb://localhost:27017"
+DATABASE_NAME = "mastersolis_db"
+
+client = AsyncIOMotorClient(MONGODB_URL)
+database = client[DATABASE_NAME]
+users_collection = database["users"]
+services_collection = database["services"]
+projects_collection = database["projects"]
+messages_collection = database["messages"]
+
+# Create unique index on email field
+async def init_db():
+    await users_collection.create_index("email", unique=True)
+    # ensure indexes for other collections
+    await services_collection.create_index("title", unique=False)
+    await projects_collection.create_index("title", unique=False)
+    await messages_collection.create_index("submitted_at")
+
+    # seed sample data (upsert so partial existing data doesn't block insertion)
+    services_seeds = [
+        {
+            'title': 'AI & Machine Learning',
+            'description': 'Transform your business with intelligent automation and predictive analytics. Custom ML models and deployment.',
+            'features': ['Custom ML model development', 'NLP & chatbots', 'Computer vision', 'Predictive analytics'],
+            'tags': ['AI', 'ML'],
+            'color': 'from-blue-600 to-indigo-700'
+        },
+        {
+            'title': 'Enterprise Web Development',
+            'description': 'Build scalable, high-performance web applications engineered for enterprise demands.',
+            'features': ['PWA', 'Microservices', 'E-commerce platforms', 'API development'],
+            'tags': ['Web', 'Frontend', 'Backend'],
+            'color': 'from-indigo-600 to-purple-700'
+        },
+        {
+            'title': 'Cloud Infrastructure',
+            'description': 'Modernize IT infrastructure with secure, scalable cloud solutions and DevOps automation.',
+            'features': ['Cloud migration', 'Multi-cloud architecture', 'CI/CD pipelines', 'Cloud security'],
+            'tags': ['Cloud', 'DevOps'],
+            'color': 'from-blue-700 to-cyan-600'
+        },
+        {
+            'title': 'Digital Transformation',
+            'description': 'Strategic consulting and implementation to reimagine business for the digital age.',
+            'features': ['Process optimization', 'Legacy modernization', 'Change management', 'Training'],
+            'tags': ['Strategy', 'Consulting'],
+            'color': 'from-purple-600 to-pink-700'
+        }
+    ]
+
+    for seed in services_seeds:
+        # upsert by title
+        await services_collection.update_one({'title': seed['title']}, {'$setOnInsert': seed}, upsert=True)
+
+    projects_seeds = [
+        {
+            'title': 'AI-Powered Analytics Dashboard',
+            'client': 'TechCorp Solutions',
+            'category': 'Web Development',
+            'industry': 'Finance',
+            'description': 'Comprehensive analytics platform with real-time visualization and AI insights',
+            'fullDescription': 'A cutting-edge analytics solution that revolutionizes how financial institutions process and visualize data.',
+            'technologies': ['React', 'Python', 'TensorFlow', 'PostgreSQL', 'Docker', 'AWS'],
+            'image': '',
+            'completionDate': '2024-09',
+            'featured': True,
+            'rating': 5,
+            'tags': ['AI/ML','Real-time','Enterprise']
+        },
+        {
+            'title': 'E-Commerce Mobile App',
+            'client': 'RetailHub Inc',
+            'category': 'Mobile Development',
+            'industry': 'Retail',
+            'description': 'Cross-platform mobile application with AR preview and integrated payments',
+            'fullDescription': 'Mobile commerce platform featuring augmented reality product visualization and personalized recommendations.',
+            'technologies': ['React Native', 'Node.js', 'MongoDB', 'Stripe', 'Firebase'],
+            'image': '',
+            'completionDate': '2024-08',
+            'featured': True,
+            'rating': 5,
+            'tags': ['AR/VR','E-commerce','Mobile']
+        },
+        {
+            'title': 'Healthcare Management System',
+            'client': 'MediCare Plus',
+            'category': 'Enterprise Software',
+            'industry': 'Healthcare',
+            'description': 'Hospital management system with patient records and telemedicine',
+            'fullDescription': 'Comprehensive healthcare solution integrating EHR, telemedicine, and practice management.',
+            'technologies': ['Angular', 'Django', 'MySQL', 'WebRTC', 'Redis'],
+            'image': '',
+            'completionDate': '2024-07',
+            'featured': False,
+            'rating': 5,
+            'tags': ['Healthcare','Compliance','Enterprise']
+        },
+        {
+            'title': 'Smart Inventory Management',
+            'client': 'LogiTrack Systems',
+            'category': 'IoT & Automation',
+            'industry': 'Logistics',
+            'description': 'IoT-based inventory tracking with predictive analytics',
+            'fullDescription': 'IoT solution utilizing smart sensors and AI to optimize inventory levels and automate operations.',
+            'technologies': ['Vue.js', 'Flask', 'Redis', 'MQTT', 'TensorFlow'],
+            'image': '',
+            'completionDate': '2024-06',
+            'featured': False,
+            'rating': 4,
+            'tags': ['IoT','Automation','Analytics']
+        },
+        {
+            'title': 'EdTech Learning Platform',
+            'client': 'EduLearn Global',
+            'category': 'Web Development',
+            'industry': 'Education',
+            'description': 'Interactive learning platform with AI-powered personalized learning',
+            'fullDescription': 'Next-generation e-learning platform featuring adaptive learning algorithms and interactive content.',
+            'technologies': ['React', 'Node.js', 'MongoDB', 'AWS', 'WebSocket'],
+            'image': '',
+            'completionDate': '2024-05',
+            'featured': True,
+            'rating': 5,
+            'tags': ['EdTech','AI/ML','SaaS']
+        },
+        {
+            'title': 'Blockchain Supply Chain',
+            'client': 'ChainSecure Ltd',
+            'category': 'Blockchain',
+            'industry': 'Supply Chain',
+            'description': 'Blockchain-based supply chain tracking system',
+            'fullDescription': 'Decentralized supply chain solution leveraging blockchain technology for immutable tracking.',
+            'technologies': ['Solidity', 'Web3.js', 'React', 'Ethereum', 'IPFS'],
+            'image': '',
+            'completionDate': '2024-04',
+            'featured': False,
+            'rating': 5,
+            'tags': ['Blockchain','Web3','Security']
+        }
+    ]
+
+    for seed in projects_seeds:
+        await projects_collection.update_one({'title': seed['title']}, {'$setOnInsert': seed}, upsert=True)
+    
+    # seed a sample contact/message so frontend can show recent messages if needed
+    if await messages_collection.count_documents({}) == 0:
+        await messages_collection.insert_one({
+            'name': 'Seed User',
+            'email': 'seed@mastersolis.com',
+            'message': 'This is a seeded demo message',
+            'submitted_at': None
+        })
